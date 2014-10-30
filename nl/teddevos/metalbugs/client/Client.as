@@ -8,11 +8,14 @@ package nl.teddevos.metalbugs.client
 	import nl.teddevos.metalbugs.Main;
 	import nl.teddevos.metalbugs.client.network.connection.Connection;
 	import flash.display.Shape;
+	import nl.teddevos.metalbugs.client.world.WorldClient;
 	
 	public class Client extends Sprite
 	{
 		public var gui:GuiScreen;
-		public var inWorld:Boolean = false;
+		
+		public var world:WorldClient;
+		public var inWorld:Boolean;
 		
 		public var connection:Connection;
 		public var connectionTester:ConnectionTest;
@@ -41,17 +44,33 @@ package nl.teddevos.metalbugs.client
 			{
 				connection.tick();
 			}
+			if (inWorld)
+			{
+				world.tick();
+			}
 			gui.tick();
 		}
 		
 		public function startWorld():void
 		{
+			removeChild(backgroundGui);
+			backgroundGui.close();
+			backgroundGui = null;
 			
+			world = new WorldClient();
+			addChildAt(world, 0);
+			inWorld = true;
 		}
 		
 		public function endWorld():void
 		{
+			backgroundGui = new BackgroundGui();
+			addChildAt(backgroundGui, 0);
 			
+			removeChild(world);
+			world.destroy();
+			world = null;
+			inWorld = false;
 		}
 		
 		public function switchGui(g:GuiScreen):void

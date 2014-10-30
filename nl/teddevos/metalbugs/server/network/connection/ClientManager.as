@@ -121,6 +121,16 @@ package nl.teddevos.metalbugs.server.network.connection
 			
 			if (PREPARE)
 			{
+				if (id == NetworkID.GAME_CLIENT_TIME_REQUEST)
+				{
+					for (var b:int = clients.length - 1; b > -1; b-- )
+					{
+						if (clients[b].clientID == player)
+						{
+							sendGameUDP(clients[b], NetworkID.GAME_SERVER_TIME, Main.server.world.gameTime_current + ";" + message);
+						}
+					}
+				}
 			}
 			else if (GAME)
 			{
@@ -261,11 +271,47 @@ package nl.teddevos.metalbugs.server.network.connection
 			}
 			else if (PREPARE)
 			{
+				var loaded:Boolean = true;
+				for (var n:int = clients.length - 1; n > -1; n-- )
+				{
+					if (clients[n].loadReady == false)
+					{
+						loaded = false;
+					}
+				}
 				
+				if (loaded && !waiting)
+				{
+					waiting = true;
+					Main.server.world.startTime = Main.server.world.gameTime_current + 2000;
+					Main.server.clientManager.sendTCPtoAll(NetworkID.TCP_SERVER_STARTTIME, Main.server.world.startTime + "");
+					
+					var pString:String = "";
+					var ml:int = clients.length;
+					for (var m:int = 0; m < ml; m++)
+					{
+						if (m > 0)
+						{
+							pString += "#";
+						}
+						pString += clients[m].clientID + ";" + clients[m].playerName + ";" + clients[m].posX + ";" + clients[m].posY + ";" + clients[m].posD + ";" + clients[m].posS + ";" + clients[m].evolution + ";" + clients[m].light;
+					}
+					Main.server.clientManager.sendTCPtoAll(NetworkID.TCP_SERVER_PLAYERSPAWNS, pString);
+					
+					//1;name;X;Y;D;S;E;L
+				}
+				
+				if (waiting && Main.server.world.gameTime_current > Main.server.world.startTime)
+				{
+					PREPARE = false;
+					GAME = true;
+					Main.server.world.gameTime_current -= Main.server.world.startTime;
+					Main.server.world.start();
+					countDown = 90;
+				}
 			}
 			else if (GAME)
 			{
-				
 			}
 		}
 		

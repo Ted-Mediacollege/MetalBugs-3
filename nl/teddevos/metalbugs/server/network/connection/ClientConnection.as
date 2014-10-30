@@ -28,9 +28,12 @@ package nl.teddevos.metalbugs.server.network.connection
 		
 		public var muted:Boolean = false;
 		
-		public var posX:int;
-		public var posY:int;
-		public var posD:int;
+		public var posX:Number;
+		public var posY:Number;
+		public var posD:Number;
+		public var posS:Number;
+		public var evolution:int;
+		public var light:Boolean;
 		public var death:Boolean;
 		
 		public var score:int = 0;
@@ -111,6 +114,10 @@ package nl.teddevos.metalbugs.server.network.connection
 			else if (id == NetworkID.TCP_CLIENT_CMD && clientID == 0)
 			{
 				CMDexecute.Execute(message);
+			}
+			else if (id == NetworkID.TCP_CLIENT_READY)
+			{
+				loadReady = true;
 			}
 		}
 		

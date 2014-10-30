@@ -151,7 +151,25 @@ package nl.teddevos.metalbugs.client.network.connection
 			var s:String = e.data.readUTF();
 			var id:int = parseInt(s.substr(0, 3));
 			
-			Main.client.dispatchEvent(new ServerGameDataEvent(ServerGameDataEvent.DATA, id, s.substr(3)));
+			if (id == NetworkID.GAME_SERVER_TIME)
+			{
+				if (Main.client.inWorld)
+				{
+					var a:Array = s.substr(3).split(";");
+					Main.client.world.newGameTime(parseInt(a[0]), parseInt(a[1]));
+				}
+			}
+			else if (id == NetworkID.GAME_SERVER_UPDATE_PLAYERS)
+			{
+				if (Main.client.inWorld)
+				{
+					Main.client.world.playersUpdate(s.substring(3));
+				}
+			}
+			else
+			{
+				Main.client.dispatchEvent(new ServerGameDataEvent(ServerGameDataEvent.DATA, id, s.substr(3)));
+			}
 		}
 		
 		public function tick():void

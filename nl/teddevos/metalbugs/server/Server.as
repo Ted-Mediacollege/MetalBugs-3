@@ -4,11 +4,15 @@ package nl.teddevos.metalbugs.server
 	import nl.teddevos.metalbugs.server.network.policy.PolicyManager;
 	import nl.teddevos.metalbugs.server.network.serverlist.ServerListUpdater;
 	import nl.teddevos.metalbugs.server.network.connection.ClientManager;
+	import nl.teddevos.metalbugs.server.world.WorldServer;
 	
 	public class Server 
 	{
 		private var policyManager:PolicyManager;
 		public var clientManager:ClientManager;
+		
+		public var world:WorldServer;
+		public var inWorld:Boolean;
 		
 		public var lastServerListUpdate:int;
 		
@@ -24,10 +28,10 @@ package nl.teddevos.metalbugs.server
 		public function tick():void
 		{
 			clientManager.tick();
-			//if (inWorld)
-			//{
-			//	world.tick();
-			//}
+			if (inWorld)
+			{
+				world.tick();
+			}
 			
 			if (localIPfound)
 			{
@@ -66,12 +70,18 @@ package nl.teddevos.metalbugs.server
 		
 		public function startWorld():void
 		{
-			
+			inWorld = true;
+			world = new WorldServer();
 		}
 		
 		public function endWorld():void
 		{
-			
+			if (inWorld)
+			{
+				inWorld = false;
+				world.end();
+				world = null;
+			}
 		}
 	}
 }
