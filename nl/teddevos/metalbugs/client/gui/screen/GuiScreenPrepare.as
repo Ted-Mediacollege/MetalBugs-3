@@ -17,6 +17,7 @@ package nl.teddevos.metalbugs.client.gui.screen
 		private var startTime:Number = 1000000;
 		private var gametimeSpam:int;
 		private var waiting:Boolean;
+		private var ready:Boolean;
 		
 		public function GuiScreenPrepare(host:Boolean) 
 		{
@@ -48,12 +49,14 @@ package nl.teddevos.metalbugs.client.gui.screen
 			addChild(pingText);
 			
 			waiting = false;
+			ready = false;
 			
 			if (hosting)
 			{
 				pingText.setText("Lowest ping: 0ms (you are hosting!)");
 				Main.client.world.newGameTime(Main.server.world.gameTime_current, 0, true);
 				Main.client.connection.sendTCP(NetworkID.TCP_CLIENT_READY);
+				ready = true;
 			}
 		}
 		
@@ -81,7 +84,6 @@ package nl.teddevos.metalbugs.client.gui.screen
 			{
 				Main.client.world.gameTime -= startTime;
 				Main.client.world.playing = true;
-				trace("start");
 				client.switchGui(new GuiScreenGame());
 			}
 			else if(waiting)
@@ -109,6 +111,14 @@ package nl.teddevos.metalbugs.client.gui.screen
 		
 		public function onGameData(e:ServerGameDataEvent):void
 		{
+			if (e.id == NetworkID.GAME_SERVER_TIME)
+			{
+				if (!ready)
+				{
+					Main.client.connection.sendTCP(NetworkID.TCP_CLIENT_READY);
+					ready = true;
+				}
+			}
 		}
 		
 		override public function destroy():void

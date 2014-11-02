@@ -129,11 +129,23 @@ package nl.teddevos.metalbugs.server.network.connection
 						{
 							sendGameUDP(clients[b], NetworkID.GAME_SERVER_TIME, Main.server.world.gameTime_current + ";" + message);
 						}
+						break;
 					}
 				}
 			}
 			else if (GAME)
 			{
+				if (id == NetworkID.GAME_CLIENT_PLAYER_UPDATE)
+				{
+					for (var c:int = clients.length - 1; c > -1; c-- )
+					{
+						if (clients[c].clientID == player)
+						{
+							clients[c].playerUpdate(message);
+							break;
+						}
+					}
+				}
 			}
 		}
 		

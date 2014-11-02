@@ -158,6 +158,7 @@ package nl.teddevos.metalbugs.client.network.connection
 					var a:Array = s.substr(3).split(";");
 					Main.client.world.newGameTime(parseInt(a[0]), parseInt(a[1]));
 				}
+				Main.client.dispatchEvent(new ServerGameDataEvent(ServerGameDataEvent.DATA, id, s.substr(3)));
 			}
 			else if (id == NetworkID.GAME_SERVER_UPDATE_PLAYERS)
 			{

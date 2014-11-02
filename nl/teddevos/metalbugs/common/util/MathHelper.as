@@ -1,5 +1,4 @@
-package nl.teddevos.metalbugs.client.util 
-{
+package nl.teddevos.metalbugs.common.util {
 	public class MathHelper 
 	{
 		public static function nextX(x:Number, direction:Number, speed:Number):Number 

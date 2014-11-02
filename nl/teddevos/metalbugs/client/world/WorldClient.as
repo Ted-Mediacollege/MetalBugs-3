@@ -1,39 +1,51 @@
 package nl.teddevos.metalbugs.client.world 
 {
+	import flash.events.Event;
 	import flash.events.MouseEvent;
 	import nl.teddevos.metalbugs.Main;
 	import nl.teddevos.metalbugs.client.network.connection.ServerTCPdataEvent;
 	import nl.teddevos.metalbugs.client.network.connection.ServerGameDataEvent;
 	import nl.teddevos.metalbugs.common.NetworkID;
 	import flash.display.Sprite;
-	import nl.teddevos.metalbugs.client.util.MathHelper;
+	import nl.teddevos.metalbugs.common.util.MathHelper;
+	import flash.display.Shape;
+	import flash.events.KeyboardEvent;
+	import flash.ui.Keyboard;
 	
 	public class WorldClient extends Sprite
 	{
 		public var gameTimeDifference:int = 1000;
 		public var gameTime:int;
 		private var time_old:int;
-		private var time:int;
+		public var time:int;
 		private var ticking:Boolean;
 		public var playing:Boolean;
 		
 		public var lowestPing:Number = 100000;
+		private var lastUpdate:Number = 0;
 		
 		public var clientPlayer:ClientPlayer;
 		public var players:Vector.<Player>;
+		
+		public var pickups:Vector.<ClientPickup>;
 		
 		public var cameraX:Number;
 		public var cameraY:Number;
 		
 		private var background:Background;
+		public var topMask:Shape;
+		
+		private var up:Boolean;
 		
 		public function WorldClient() 
 		{
 			players = new Vector.<Player>();
+			pickups = new Vector.<ClientPickup>();
 			
 			Main.client.addEventListener(ServerTCPdataEvent.DATA, onTCPdata);
 			Main.client.addEventListener(ServerGameDataEvent.DATA, onGameData);
-			Main.client.addEventListener(MouseEvent.MOUSE_MOVE, onMouseMove);
+			Main.client.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+			Main.client.addEventListener(KeyboardEvent.KEY_UP, onKeyUp);
 			
 			cameraX = 400;
 			cameraY = 400;
@@ -42,10 +54,18 @@ package nl.teddevos.metalbugs.client.world
 			background.x = cameraX - 1024;
 			background.y = cameraY - 1024;
 			addChild(background);
+			
+			up = true;
+						
+			topMask = new Shape();
+			addChild(topMask);
+			this.mask = topMask;
 		}
 		
 		public function tick():void
 		{
+			topMask.graphics.clear();
+			
 			if (ticking)
 			{
 				var d:Date = new Date();
@@ -54,11 +74,14 @@ package nl.teddevos.metalbugs.client.world
 				gameTime += time;
 			}
 			
+			background.x = cameraX - 1024;
+			background.y = cameraY - 1024;
+			
 			if (playing)
 			{
 				cameraX = -clientPlayer.posX + 400;
 				cameraY = -clientPlayer.posY + 400;
-				
+						
 				if (-clientPlayer.posX > 620)
 				{
 					cameraX = 620 + 400;
@@ -79,21 +102,42 @@ package nl.teddevos.metalbugs.client.world
 				var l:int = players.length;
 				for (var i:int = 0; i < l; i++ )
 				{
-					players[i].tick(cameraX, cameraY);
+					players[i].tick(this);
+					
+					if (players[i].light)
+					{
+						drawLight(players[i].x, players[i].y, players[i].posD);
+					}
+				}
+				
+				var pl:int = pickups.length;
+				for (var p:int = 0; p < pl; p++ )
+				{
+					pickups[p].tick(this);
 				}
 			}
-			
-			background.x = cameraX - 1024;
-			background.y = cameraY - 1024;
-		}
+		}	
 		
-		public function onMouseMove(e:MouseEvent):void
+		public function drawLight(px:int, py:int, d:Number):void
 		{
-			if (playing)
+			topMask.graphics.beginFill(0x000000, 1);
+			topMask.graphics.drawCircle(MathHelper.nextX(px, d, 50), MathHelper.nextY(py, d, 50), 60);
+			topMask.graphics.drawCircle(MathHelper.nextX(px, d, 290), MathHelper.nextY(py, d, 290), 120);
+			var vecs:Vector.<Number> = new Vector.<Number>(8);
+			vecs[0] = MathHelper.nextX(MathHelper.nextX(px, d, 42), d - 90, 60);
+			vecs[2] = MathHelper.nextX(MathHelper.nextX(px, d, 275), d - 90, 120);
+			vecs[4] = MathHelper.nextX(MathHelper.nextX(px, d, 275), d + 90, 120);
+			vecs[6] = MathHelper.nextX(MathHelper.nextX(px, d, 42), d + 90, 60);
+			vecs[1] = MathHelper.nextY(MathHelper.nextY(py, d, 42), d - 90, 60);
+			vecs[3] = MathHelper.nextY(MathHelper.nextY(py, d, 275), d - 90, 120);
+			vecs[5] = MathHelper.nextY(MathHelper.nextY(py, d, 275), d + 90, 120);
+			vecs[7] = MathHelper.nextY(MathHelper.nextY(py, d, 42), d + 90, 60);
+			topMask.graphics.moveTo(vecs[6], vecs[7]);
+			for (var i:int = 0; i < 8; i+=2 )
 			{
-				clientPlayer.posD = MathHelper.pointToDegree(clientPlayer.x, clientPlayer.y, e.stageX, e.stageY);
-				clientPlayer.posS = 4;
+				topMask.graphics.lineTo(vecs[i], vecs[1 + i]);
 			}
+			topMask.graphics.endFill();
 		}
 		
 		public function newGameTime(t:Number, time:Number, host:Boolean = false):void
@@ -127,17 +171,23 @@ package nl.teddevos.metalbugs.client.world
 			var a:Array = s.split("#");
 			var l:int = a.length;
 			var pl:int = players.length;
+			var t:Number = parseFloat(a[0]);
 			
-			for (var i:int = 0; i < l; i++ )
+			if (t > lastUpdate)
 			{
-				var b:Array = s.split("$");
-				var id:int = int(parseInt(b[0]));
-				
-				for (var j:int = 0; j < pl; j++ )
+				lastUpdate = t;
+				for (var i:int = 1; i < l; i++ )
 				{
-					if (id == players[j].id)
+					var b:Array = a[i].split("$");
+					var id:int = int(parseInt(b[0]));
+					
+					for (var j:int = 0; j < pl; j++ )
 					{
-						players[j].playerUpdate(b[1]);
+						if (id == players[j].id)
+						{
+							players[j].playerUpdate(t, b[1]);
+							break;
+						}
 					}
 				}
 			}
@@ -168,18 +218,79 @@ package nl.teddevos.metalbugs.client.world
 					}
 				}
 			}
+			else if (e.id == NetworkID.TCP_SERVER_GROW)
+			{
+				if (parseFloat(e.data) > clientPlayer.lastGrow)
+				{
+					clientPlayer.lastGrow = parseFloat(e.data);
+					if (clientPlayer.evolution < 8)
+					{
+						clientPlayer.evolution++;
+						clientPlayer.art.gotoAndStop(clientPlayer.evolution);
+					}
+				}
+			}
 		}
 		
 		public function onGameData(e:ServerGameDataEvent):void
 		{
-			
+			if (e.id == NetworkID.GAME_SERVER_PICKUP_SPAWN)
+			{
+				var a:Array = e.data.split(";");
+				
+				var pickup:ClientPickup = new ClientPickup(this, parseFloat(a[0]), parseFloat(a[1]), int(parseInt(a[2])));
+				pickups.push(pickup);
+				addChildAt(pickup, 1);
+			}
+			else if (e.id == NetworkID.GAME_SERVER_PICKUP_DESTROY)
+			{
+				var pickupID:int = int(parseInt(e.data));
+				
+				var l:int = pickups.length;
+				for (var j:int = 0; j < l; j++)
+				{
+					if (pickupID == pickups[j].id)
+					{
+						removeChild(pickups[j]);
+						pickups.splice(j, 1);
+						break;
+					}
+				}
+			}
+			else if (e.id == NetworkID.GAME_SERVER_GROW)
+			{
+				if (parseFloat(e.data) > clientPlayer.lastGrow)
+				{
+					clientPlayer.lastGrow = parseFloat(e.data);
+					if (clientPlayer.evolution < 8)
+					{
+						clientPlayer.evolution++;
+						clientPlayer.art.gotoAndStop(clientPlayer.evolution);
+					}
+				}
+			}
+		}
+		
+		public function onKeyDown(e:KeyboardEvent):void
+		{
+			if (up && e.keyCode == Keyboard.SPACE)
+			{
+				clientPlayer.light = !clientPlayer.light;
+				up = false;
+			}
+		}
+		
+		public function onKeyUp(e:KeyboardEvent):void
+		{
+			up = true;
 		}
 		
 		public function destroy():void
 		{
 			Main.client.removeEventListener(ServerTCPdataEvent.DATA, onTCPdata);
 			Main.client.removeEventListener(ServerGameDataEvent.DATA, onGameData);
-			Main.client.removeEventListener(MouseEvent.MOUSE_MOVE, onMouseMove);
+			Main.client.removeEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+			Main.client.removeEventListener(KeyboardEvent.KEY_UP, onKeyUp);
 		}
 	}
 }

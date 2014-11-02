@@ -11,6 +11,7 @@ package nl.teddevos.metalbugs.server.network.connection
 	import nl.teddevos.metalbugs.common.Port;
 	import nl.teddevos.metalbugs.server.data.ServerLog;
 	import nl.teddevos.metalbugs.server.data.CMDexecute;
+	import nl.teddevos.metalbugs.server.world.WorldServer;
 	
 	public class ClientConnection 
 	{
@@ -158,6 +159,28 @@ package nl.teddevos.metalbugs.server.network.connection
 			var b:ByteArray = new ByteArray();
 			b.writeUTF(NetworkID.PING + "" + d.time);
 			pingSocket.send(b, 0, 0, remoteAdress, Port.QUICK_UDP_CLIENT);
+		}
+		
+		public function playerUpdate(s:String):void
+		{
+			var a:Array = s.split(";");
+			var t:Number = parseFloat(a[0]);
+			
+			posX = parseFloat(a[1]);
+			posY = parseFloat(a[2]);
+			posD = parseFloat(a[3]);
+			posS = parseFloat(a[4]);
+			evolution = int(parseInt(a[5]));
+			light = String(a[6]) == "true" ? true : false;
+			
+			posX += (posS / 33) * (Main.client.world.gameTime - t) * Math.cos(posD * Math.PI / 180.0);
+			posY += (posS / 33) * (Main.client.world.gameTime - t) * Math.sin(posD * Math.PI / 180.0);
+		}
+		
+		public function playerMove(world:WorldServer):void
+		{
+			posX += (posS / 33) * world.gameTime_past * Math.cos(posD * Math.PI / 180.0);
+			posY += (posS / 33) * world.gameTime_past * Math.sin(posD * Math.PI / 180.0);
 		}
 		
 		public function calculatePing(pingStart:Number):void
