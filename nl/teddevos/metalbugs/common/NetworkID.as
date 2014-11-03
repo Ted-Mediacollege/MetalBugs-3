@@ -24,7 +24,10 @@ package nl.teddevos.metalbugs.common
 		public static var TCP_SERVER_PREPARE:int = 107;				//X - 
 		public static var TCP_SERVER_STARTTIME:int = 108;			//X - time
 		public static var TCP_SERVER_PLAYERSPAWNS:int = 109;		//X - 1;name;X;Y;D;S;E;L#...
-		public static var TCP_SERVER_GROW:int = 110;				//X - time
+		public static var TCP_SERVER_PICKUP_SPAWN:int = 110;		//X	- X;Y;ID
+		public static var TCP_SERVER_PICKUP_DESTROY:int = 111;		//X - ID
+		public static var TCP_SERVER_GROW:int = 112;				//X - time
+		public static var TCP_SERVER_RESET:int = 113;				//X - KILL-ID;DEATH-ID;X;Y
 		
 		//========== QUICK ====================================
 		
@@ -48,6 +51,7 @@ package nl.teddevos.metalbugs.common
 		public static var GAME_SERVER_PICKUP_SPAWN:int = 302;		//X	- X;Y;ID
 		public static var GAME_SERVER_PICKUP_DESTROY:int = 303;		//X - ID
 		public static var GAME_SERVER_GROW:int = 304;				//X - time
+		public static var GAME_SERVER_RESET:int = 305;				//X - time;KILL-ID;DEATH-ID;X;Y
 		
 		//========== RESP =====================================
 		

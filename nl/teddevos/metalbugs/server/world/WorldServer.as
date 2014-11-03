@@ -41,6 +41,7 @@ package nl.teddevos.metalbugs.server.world
 			for (var i:int = 0; i < l; i++)
 			{
 				getSpawnpoint(clientManager.clients[i]);
+				clientManager.clients[i].death = false;
 				clientManager.clients[i].posD = 0;
 				clientManager.clients[i].posS = 0;
 				clientManager.clients[i].evolution = 1;
@@ -60,6 +61,7 @@ package nl.teddevos.metalbugs.server.world
 		{
 			pickUps.push(new Pickup(nextPickupID, x, y));
 			Main.server.clientManager.sendGameUDPtoAll(NetworkID.GAME_SERVER_PICKUP_SPAWN, x + ";" + y + ";" + nextPickupID);
+			Main.server.clientManager.sendTCPtoAll(NetworkID.TCP_SERVER_PICKUP_SPAWN, x + ";" + y + ";" + nextPickupID);
 			nextPickupID++;
 		}
 		
@@ -118,10 +120,31 @@ package nl.teddevos.metalbugs.server.world
 						{
 							pl--;
 							Main.server.clientManager.sendGameUDPtoAll(NetworkID.GAME_SERVER_PICKUP_DESTROY, pickUps[q].id + "");
+							Main.server.clientManager.sendGameUDPtoAll(NetworkID.TCP_SERVER_PICKUP_DESTROY, pickUps[q].id + "");
 							Main.server.clientManager.sendGameUDP(clientManager.clients[i], NetworkID.GAME_SERVER_GROW, gameTime_current + "");
 							Main.server.clientManager.sendTCP(clientManager.clients[i], NetworkID.TCP_SERVER_GROW, gameTime_current + "");
 							pickUps.splice(q, 1);
 							break;
+						}
+					}
+				}
+				
+				for (var col1:int = 0; col1 < l; col1++)
+				{
+					for (var col2:int = 0; col2 < l; col2++)
+					{
+						if (col1 != col2 && MathHelper.dis2(clientManager.clients[col1].posX, clientManager.clients[col1].posY, clientManager.clients[col2].posX, clientManager.clients[col2].posY) < 60)
+						{
+							if (clientManager.clients[col1].evolution > clientManager.clients[col2].evolution)
+							{
+								getSpawnpoint(clientManager.clients[col2]);
+								clientManager.clients[col2].evolution = 0;
+								Main.server.clientManager.sendTCPtoAll(NetworkID.TCP_SERVER_RESET, gameTime_current + ";" + clientManager.clients[col1].clientID + ";" + clientManager.clients[col2].clientID + ";" + clientManager.clients[col2].posX + ";" + clientManager.clients[col2].posY);
+								Main.server.clientManager.sendGameUDPtoAll(NetworkID.GAME_SERVER_RESET, gameTime_current + ";" + clientManager.clients[col1].clientID + ";" + clientManager.clients[col2].clientID + ";" + clientManager.clients[col2].posX + ";" + clientManager.clients[col2].posY);
+								Main.server.clientManager.sendGameUDP(clientManager.clients[col1], NetworkID.GAME_SERVER_GROW, gameTime_current + "");
+								Main.server.clientManager.sendTCP(clientManager.clients[col1], NetworkID.TCP_SERVER_GROW, gameTime_current + "");
+								trace(col1);
+							}
 						}
 					}
 				}

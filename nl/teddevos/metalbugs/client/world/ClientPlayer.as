@@ -55,6 +55,7 @@ package nl.teddevos.metalbugs.client.world
 			x = world.cameraX + posX;
 			y = world.cameraY + posY;
 			rotation = posD;
+			smoothD = posD;
 			
 			sendDelay--;
 			if (sendDelay < 0)
@@ -64,7 +65,7 @@ package nl.teddevos.metalbugs.client.world
 			}
 		}
 		
-		override public function playerUpdate(t:Number, s:String):void
+		override public function playerUpdate(world:WorldClient, t:Number, s:String):void
 		{
 		}
 	}

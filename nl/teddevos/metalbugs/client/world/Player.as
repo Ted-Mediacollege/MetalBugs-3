@@ -22,6 +22,8 @@ package nl.teddevos.metalbugs.client.world
 		
 		public var art:MovieClip;
 		
+		public var lastDeath:int;
+		
 		public function Player(i:int, p:String, x:Number, y:Number, d:Number, s:Number, e:int, l:Boolean) 
 		{
 			id = i;
@@ -37,6 +39,8 @@ package nl.teddevos.metalbugs.client.world
 			targetX = 0;
 			targetY = 0;
 			smoothD = posD;
+			
+			lastDeath = 0;
 			
 			art = new Characters();
 			addChild(art);
@@ -72,15 +76,15 @@ package nl.teddevos.metalbugs.client.world
 			
 			if (posD > 90 && smoothD < -90)
 			{
-				smoothD = (smoothD * 9 + (posD - 360)) / 10;
+				smoothD = (smoothD * 4 + (posD - 360)) / 5;
 			}
 			else if (posD < -90 && smoothD > 90)
 			{
-				smoothD = (smoothD * 9 + (posD + 360)) / 10;
+				smoothD = (smoothD * 4 + (posD + 360)) / 5;
 			}
 			else
 			{
-				smoothD = (smoothD * 9 + posD) / 10;
+				smoothD = (smoothD * 4 + posD) / 5;
 			}
 			
 			if (smoothD > 180)
@@ -97,7 +101,7 @@ package nl.teddevos.metalbugs.client.world
 			rotation = smoothD;
 		}
 		
-		public function playerUpdate(t:Number, s:String):void
+		public function playerUpdate(world:WorldClient, t:Number, s:String):void
 		{
 			var a:Array = s.split(";");
 			
@@ -105,8 +109,18 @@ package nl.teddevos.metalbugs.client.world
 			targetY = Number(parseFloat(a[1]));
 			posD = Number(parseFloat(a[2]));
 			posS = Number(parseFloat(a[3]));
-			evolution = int(parseInt(a[4]));
 			light = String(a[5]) == "true" ? true : false;
+			
+			if (evolution < int(parseInt(a[4])))
+			{
+				art.gotoAndStop(int(parseInt(a[4])));
+				evolution = int(parseInt(a[4]));
+				world.updateChildPos(this, true);
+			}
+			else
+			{
+				evolution = int(parseInt(a[4]));
+			}
 			
 			//targetX += (posS / 33) * (Main.client.world.gameTime - t) * Math.cos(posD * Math.PI / 180.0);
 			//targetY += (posS / 33) * (Main.client.world.gameTime - t) * Math.sin(posD * Math.PI / 180.0);

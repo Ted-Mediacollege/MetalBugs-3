@@ -1,5 +1,6 @@
 package nl.teddevos.metalbugs.client.world 
 {
+	import flash.display.NativeWindowDisplayState;
 	import flash.events.Event;
 	import flash.events.MouseEvent;
 	import nl.teddevos.metalbugs.Main;
@@ -58,8 +59,8 @@ package nl.teddevos.metalbugs.client.world
 			up = true;
 						
 			topMask = new Shape();
-			addChild(topMask);
-			this.mask = topMask;
+			//addChild(topMask);
+			//this.mask = topMask;
 		}
 		
 		public function tick():void
@@ -106,7 +107,7 @@ package nl.teddevos.metalbugs.client.world
 					
 					if (players[i].light)
 					{
-						drawLight(players[i].x, players[i].y, players[i].posD);
+						drawLight(players[i].x, players[i].y, players[i].smoothD);
 					}
 				}
 				
@@ -185,10 +186,51 @@ package nl.teddevos.metalbugs.client.world
 					{
 						if (id == players[j].id)
 						{
-							players[j].playerUpdate(t, b[1]);
+							players[j].playerUpdate(this, t, b[1]);
 							break;
 						}
 					}
+				}
+			}
+		}
+		
+		public function updateChildPos(player:Player, grow:Boolean):void
+		{
+			if (grow)
+			{
+				var lowestIndex:int = 1;
+				var lowestEvolution:int = 9;
+				var l:int = players.length;
+				for (var i:int = 0; i < l; i++ )
+				{
+					if (players[i] != player && players[i].evolution >= player.evolution && players[i].evolution < lowestEvolution)
+					{
+						if (getChildIndex(players[i]) < lowestIndex)
+						{
+							lowestIndex = getChildIndex(players[i]);
+						}
+					}
+				}
+				
+				if (lowestEvolution == 9)
+				{
+					removeChild(player);
+					addChild(player);
+				}
+				else
+				{
+					setChildIndex(player, lowestIndex);
+				}
+			}
+			else
+			{
+				if (pickups.length > 0)
+				{
+					setChildIndex(player, getChildIndex(pickups[0]));
+				}
+				else
+				{
+					setChildIndex(player, 1);
 				}
 			}
 		}
@@ -218,6 +260,51 @@ package nl.teddevos.metalbugs.client.world
 					}
 				}
 			}
+			else if (e.id == NetworkID.TCP_SERVER_PICKUP_SPAWN)
+			{
+				var q:Array = e.data.split(";");
+				var pickupID2:int = int(parseInt(q[2]));
+				
+				var l2:int = pickups.length;
+				if (l2 == 0)
+				{
+					var pickup2:ClientPickup = new ClientPickup(this, parseFloat(q[0]), parseFloat(q[1]), pickupID2);
+					pickups.push(pickup2);
+					addChildAt(pickup2, 1);
+				}
+				else
+				{
+					for (var k:int = 0; k < l2; k++ )
+					{
+						if (pickups[k].id == pickupID2)
+						{
+							break;
+						}
+						
+						if (k == l2 - 1)
+						{
+							var pickup:ClientPickup = new ClientPickup(this, parseFloat(q[0]), parseFloat(q[1]), pickupID2);
+							pickups.push(pickup);
+							addChildAt(pickup, 1);
+						}
+					}
+				}
+			}
+			else if (e.id == NetworkID.TCP_SERVER_PICKUP_DESTROY)
+			{
+				var pickupID:int = int(parseInt(e.data));
+				
+				var l3:int = pickups.length;
+				for (var j:int = 0; j < l3; j++)
+				{
+					if (pickupID == pickups[j].id)
+					{
+						removeChild(pickups[j]);
+						pickups.splice(j, 1);
+						break;
+					}
+				}
+			}
 			else if (e.id == NetworkID.TCP_SERVER_GROW)
 			{
 				if (parseFloat(e.data) > clientPlayer.lastGrow)
@@ -228,6 +315,36 @@ package nl.teddevos.metalbugs.client.world
 						clientPlayer.evolution++;
 						clientPlayer.art.gotoAndStop(clientPlayer.evolution);
 					}
+					updateChildPos(clientPlayer, true);
+				}
+			}
+			else if (e.id == NetworkID.TCP_SERVER_RESET)
+			{
+				var ki:Array = e.data.split(";");
+				var deadtime:Number = parseFloat(ki[0]);
+				var dead:Player = getPlayerByID(int(parseInt(ki[2])));
+				if (dead == clientPlayer && deadtime > clientPlayer.lastDeath)
+				{
+					clientPlayer.posX = int(parseInt(ki[3]));
+					clientPlayer.posY = int(parseInt(ki[4]));
+					clientPlayer.light = true;
+					clientPlayer.evolution = 1;
+					clientPlayer.art.gotoAndStop(1);
+					updateChildPos(clientPlayer, false);
+					
+					trace(getPlayerByID(int(parseInt(ki[1]))).playerName, "killed", dead.playerName);
+				}
+				else if(deadtime > dead.lastDeath)
+				{
+					dead.posX = int(parseInt(ki[3]));
+					dead.posY = int(parseInt(ki[4]));
+					dead.targetX = dead.posX;
+					dead.targetY = dead.posY;
+					dead.evolution = 1;
+					dead.art.gotoAndStop(1);
+					updateChildPos(dead, false);
+					
+					trace(getPlayerByID(int(parseInt(ki[1]))).playerName, "killed", dead.playerName);
 				}
 			}
 		}
@@ -237,10 +354,32 @@ package nl.teddevos.metalbugs.client.world
 			if (e.id == NetworkID.GAME_SERVER_PICKUP_SPAWN)
 			{
 				var a:Array = e.data.split(";");
+				var pickupID2:int = int(parseInt(a[2]));
 				
-				var pickup:ClientPickup = new ClientPickup(this, parseFloat(a[0]), parseFloat(a[1]), int(parseInt(a[2])));
-				pickups.push(pickup);
-				addChildAt(pickup, 1);
+				var l2:int = pickups.length;
+				if (l2 == 0)
+				{
+					var pickup2:ClientPickup = new ClientPickup(this, parseFloat(a[0]), parseFloat(a[1]), pickupID2);
+					pickups.push(pickup2);
+					addChildAt(pickup2, 1);
+				}
+				else
+				{
+					for (var k:int = 0; k < l2; k++ )
+					{
+						if (pickups[k].id == pickupID2)
+						{
+							break;
+						}
+						
+						if (k == l2 - 1)
+						{
+							var pickup:ClientPickup = new ClientPickup(this, parseFloat(a[0]), parseFloat(a[1]), pickupID2);
+							pickups.push(pickup);
+							addChildAt(pickup, 1);
+						}
+					}
+				}
 			}
 			else if (e.id == NetworkID.GAME_SERVER_PICKUP_DESTROY)
 			{
@@ -267,7 +406,12 @@ package nl.teddevos.metalbugs.client.world
 						clientPlayer.evolution++;
 						clientPlayer.art.gotoAndStop(clientPlayer.evolution);
 					}
+					updateChildPos(clientPlayer, true);
 				}
+			}
+			else if (e.id == NetworkID.GAME_SERVER_RESET)
+			{
+				
 			}
 		}
 		
@@ -291,6 +435,18 @@ package nl.teddevos.metalbugs.client.world
 			Main.client.removeEventListener(ServerGameDataEvent.DATA, onGameData);
 			Main.client.removeEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
 			Main.client.removeEventListener(KeyboardEvent.KEY_UP, onKeyUp);
+		}
+		
+		public function getPlayerByID(id:int):Player
+		{
+			for (var i:int = players.length - 1; i > -1; i-- )
+			{
+				if (id == players[i].id)
+				{
+					return players[i];
+				}
+			}
+			return players[0];
 		}
 	}
 }
