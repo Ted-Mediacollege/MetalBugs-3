@@ -1,5 +1,7 @@
 package nl.teddevos.metalbugs.client.network.serverlist 
 {
+	import flash.events.IOErrorEvent;
+	import flash.events.SecurityErrorEvent;
 	import flash.net.URLLoader;
 	import flash.net.URLRequest;
 	import flash.net.URLVariables;
@@ -13,12 +15,14 @@ package nl.teddevos.metalbugs.client.network.serverlist
 	{
 		public static var loading:Boolean = false;
 		public static var loader:URLLoader;
+		public static var offline:Boolean = false;
 		
 		public static function requestData():void
 		{
 			if (!loading)
 			{
 				loading = true;
+				offline = false;
 				
 				try
 				{
@@ -27,12 +31,25 @@ package nl.teddevos.metalbugs.client.network.serverlist
 					var urlvars: URLVariables = new URLVariables;
 					loader.dataFormat = URLLoaderDataFormat.TEXT;
 					loader.addEventListener(Event.COMPLETE, onListData);
+					loader.addEventListener(IOErrorEvent.IO_ERROR, ioError);
+					loader.addEventListener(SecurityErrorEvent.SECURITY_ERROR, secError);
 					loader.load(urlreq);				
 				}
 				catch (e:Error)
 				{
 				}
 			}
+		}
+		
+		private static function ioError(e:IOErrorEvent):void
+		{
+			Main.client.dispatchEvent(new ServerListEvent(ServerListEvent.DATA, false, ""));
+			offline = true;
+		}
+		
+		private static function secError(e:SecurityErrorEvent):void
+		{
+			Main.client.dispatchEvent(new ServerListEvent(ServerListEvent.DATA, false, ""));
 		}
 		
 		private static function onListData(e:Event):void

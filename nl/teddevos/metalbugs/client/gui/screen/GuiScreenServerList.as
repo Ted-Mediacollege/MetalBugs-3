@@ -130,7 +130,11 @@ package nl.teddevos.metalbugs.client.gui.screen
 		
 		public function onListData(e:ServerListEvent):void
 		{
-			if (Main.client.connectionTester.failed)
+			if (ServerListRequest.offline)
+			{
+				loading_text.setText("Cannot connect to internet.");
+			}
+			else if (Main.client.connectionTester.failed)
 			{
 				loading_text.setText("Failed to setup request socket, Try restarting your game");
 			}

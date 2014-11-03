@@ -40,8 +40,7 @@ package nl.teddevos.metalbugs.server.world
 			var l:int = clientManager.clients.length;
 			for (var i:int = 0; i < l; i++)
 			{
-				clientManager.clients[i].posX = 0;
-				clientManager.clients[i].posY = 0;
+				getSpawnpoint(clientManager.clients[i]);
 				clientManager.clients[i].posD = 0;
 				clientManager.clients[i].posS = 0;
 				clientManager.clients[i].evolution = 1;
@@ -62,6 +61,38 @@ package nl.teddevos.metalbugs.server.world
 			pickUps.push(new Pickup(nextPickupID, x, y));
 			Main.server.clientManager.sendGameUDPtoAll(NetworkID.GAME_SERVER_PICKUP_SPAWN, x + ";" + y + ";" + nextPickupID);
 			nextPickupID++;
+		}
+		
+		public function getSpawnpoint(client:ClientConnection):void
+		{
+			var minDist:Number = 320;
+			var found:Boolean = true;
+			var l:int = clientManager.clients.length;
+			while (true)
+			{
+				minDist -= 20;
+				var rX:Number = -900 + (Math.random() * 1800);
+				var rY:Number = -900 + (Math.random() * 1800);
+				
+				found = true;
+				for (var i:int = 0; i < l; i++ )
+				{
+					if (!clientManager.clients[i].death && clientManager.clients[i] != client)
+					{
+						if (MathHelper.dis2(rX, rY, clientManager.clients[i].posX, clientManager.clients[i].posY) < minDist)
+						{
+							found = false;
+						}
+					}
+				}
+				
+				if (found || minDist < 0)
+				{
+					client.posX = rX;
+					client.posY = rY;
+					break;
+				}
+			}
 		}
 		
 		public function tick():void

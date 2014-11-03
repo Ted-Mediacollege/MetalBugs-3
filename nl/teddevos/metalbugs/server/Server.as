@@ -20,6 +20,8 @@ package nl.teddevos.metalbugs.server
 		public var localIP:String = "127.0.0.1";
 		public var localIPfound:Boolean = false;
 		
+		public var firstMessage:Boolean = true;
+		
 		public function Server(s:String) 
 		{
 			serverName = s;
@@ -44,7 +46,8 @@ package nl.teddevos.metalbugs.server
 					}
 					lastServerListUpdate = int(d.getMinutes());
 					
-					ServerListUpdater.update();
+					ServerListUpdater.update(firstMessage);
+					firstMessage = false;
 				}
 			}
 		}
